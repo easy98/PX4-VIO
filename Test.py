@@ -7,6 +7,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2
 
 current_state = State()
+bridge = CvBridge()
 
 def state_cb(msg):
     global current_state
@@ -17,13 +18,14 @@ def img_cb(msg):
 
     # image reader
     global cv_image
-    try:
-        cv_image = CvBridge().imgmsg_to_cv2(current_img, "passthrough")
-    except:
-        print("error")
 
-    cv2.imshow('Camera Image', cv_image)
-    cv2.waitKey(1)
+    try:
+        cv_image = bridge.imgmsg_to_cv2(current_img, "rgb8")
+
+        cv2.imshow('Camera Image', cv_image)
+        cv2.waitKey(1)
+    except CvBridgeError as e:
+        print('Error: ', e)
 
 
 
@@ -31,7 +33,7 @@ if __name__ == "__main__":
     rospy.init_node("offb_node_py")
 
     state_sub = rospy.Subscriber("/mavros/state", State, callback = state_cb)
-    img_sub = rospy.Subscriber("/iris_depth_camera/camera/depth/image_raw", Image, callback = img_cb)
+    img_sub = rospy.Subscriber("/iris_depth_camera/camera/rgb/image_raw", Image, callback = img_cb)
 
     local_pos_pub = rospy.Publisher("mavros/setpoint_position/local", PoseStamped, queue_size=10)
 
@@ -53,7 +55,7 @@ if __name__ == "__main__":
 
     pose.pose.position.x = 5
     pose.pose.position.y = 5
-    pose.pose.position.z = 5
+    pose.pose.position.z = 1.5
 
     # Send a few setpoints before starting
     for i in range(100):

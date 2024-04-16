@@ -6,17 +6,23 @@ from sensor_msgs.msg import Imu, Image
 from geometry_msgs.msg import Pose, PoseStamped
 from nav_msgs.msg import Path, Odometry
 from math_func.quat_func import *
-from core_func.IMUPropagation import IMUPropagation
+from core_func.IMUPropagation import IMU_Propagation
 from queue import Queue
 from threading import Thread
 from Msckf import MSCKF
 
+from core_func.config import config_gazebo
+
 # define global variable
 
 class VIO_msckf():
-    def __init__(self):
+    def __init__(self, config):
+
+        self.config = config
+
         self.ros_init()
         self.vio_init()
+
 
     def ros_init(self):
         ### ROS initialize ###
@@ -47,7 +53,7 @@ class VIO_msckf():
         self.vio_thread = Thread(target=self.msg_process)
         self.vio_thread.start()
 
-        self.msckf = MSCKF()
+        self.msckf = MSCKF(self.config)
         rospy.loginfo("VIO Initilization Finished.")
 
 
@@ -102,13 +108,6 @@ class VIO_msckf():
         self.msckf.vio_process(gt_data, imu_data)
 
 
-
-    def VIO_Propagation(self):
-        # IMU propagation
-        IMU = IMUPropagation(self.position, self.velocity, self.orientation)
-        self.position, self.velocity, self.orientation = IMU.update_state(gyro=self.angular_velocity, accel=self.velocity, dt=self.dt)
-
-
     def pose_est_pub(self):
         pose_est = PoseStamped()
         pose_est.header.stamp = rospy.Time.now()
@@ -139,5 +138,6 @@ class VIO_msckf():
 
 
 if __name__ == '__main__':
-    node = VIO_msckf()
+    config = config_gazebo()
+    node = VIO_msckf(config)
     node.spin()
